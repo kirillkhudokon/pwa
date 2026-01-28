@@ -10,7 +10,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         home: resolve(pagesPath, 'index.html'),
-        blog: resolve(pagesPath, 'advice.html')
+        advice: resolve(pagesPath, 'advice.html'),
+        blog: resolve(pagesPath, 'posts.html')
       },
       /* tmp, later vite manifest */
       output: {
