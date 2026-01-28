@@ -7,6 +7,7 @@ const pagesPath = __dirname;
 
 export default defineConfig({
   build: {
+    manifest: 'assets.json', //перенос из .vite
     rollupOptions: {
       input: {
         home: resolve(pagesPath, 'index.html'),
@@ -14,11 +15,13 @@ export default defineConfig({
         blog: resolve(pagesPath, 'posts.html')
       },
       /* tmp, later vite manifest */
+      /*
       output: {
         entryFileNames: `assets/[name].js`,
         chunkFileNames: `assets/[name].js`,
         assetFileNames: `assets/[name].[ext]`
       }
+      */
     }
   }
 })

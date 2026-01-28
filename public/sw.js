@@ -1,4 +1,4 @@
-const CACHE_KEY = 'pwa-ai-adv-v6';
+const CACHE_KEY = 'pwa-ai-adv-v7';
 const EXTERNAL_API_PATH = 'http://localhost:3001';
 const CACHE_SWR_ID_HEADER = 'X-SWR-ID';
 
@@ -7,17 +7,38 @@ const staticAssets = [
 	'/advice.html',
 	'/posts.html',
 	'/vite.svg',
-	'/assets/main.js',
-	'/assets/main.css',
 	'/manifest.json',
 	'/images/icon.png'
 ];
+
+async function getAssetsFromManifest() {
+	try {
+		const response = await fetch('/assets.json');
+		const manifest = await response.json();
+		const assets = [];
+		for (const entry of Object.values(manifest)) {
+			if (entry.file) {
+				const file = `/${entry.file}`;
+				if (file && !assets.includes(file)) {
+				  assets.push(file);
+				}
+			}
+		}
+		return assets;
+	} catch (e) {
+		console.error('Failed to load manifest.json', e);
+		return [];
+	}
+}
 
 self.addEventListener('install', function(event){
 	self.skipWaiting();
 
 	event.waitUntil(
-		caches.open(CACHE_KEY).then(cache => cache.addAll(staticAssets))
+		getAssetsFromManifest().then(manifestAssets => {
+			const allAssets = [...staticAssets, ...manifestAssets];
+			return caches.open(CACHE_KEY).then(cache => cache.addAll(allAssets));
+		})
 	)
 });
 
@@ -31,14 +52,15 @@ self.addEventListener('activate', function(){
 
 self.addEventListener('fetch', function(event){
 	// recom ignore: video etc, !http
-
 	if(event.request.url.startsWith(self.location.origin)) {
-		event.respondWith(cacheTTLNetworkFallback(event.request, 30 * 1000));
+		//для дебага
+		event.respondWith(cacheFirst(event.request, 30 * 1000));
 		return;
 	}
 
 	if(event.request.url.startsWith(EXTERNAL_API_PATH)) {
-		event.respondWith(cacheSwrWithMessage(event.request));
+		//для дебага
+		event.respondWith(cacheFirst(event.request));
 		return;
 	}
 })
@@ -68,17 +90,17 @@ async function networkFirst(request){
 
 async function cacheFirst(request){
 	try{
-		const cachedResponse = await caches.match(request, { cacheName: CACHE_KEY });
+		const cachedResponse = await caches.match(request.url, { ignoreVary: true }); //только после этого заработало
 
 		if(cachedResponse){
-			console.log('c1 from cache', request.url)
+			console.log('c1 from cache', request.url, request)
 			return cachedResponse;
 		}
 
 		const networkResponse = await fetch(request);
 
 		if(networkResponse.ok){
-			console.log('c1 from network', request.url)
+			console.log('c1 from network', request.url, request)
 			const cache = await caches.open(CACHE_KEY);
 			cache.put(request, networkResponse.clone());
 		}
